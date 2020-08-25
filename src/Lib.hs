@@ -362,7 +362,7 @@ instance Functor (Reader r) where
 
 instance Applicative (Reader r) where
   pure a = Reader $ const a
-  (<*>) (Reader rf) (Reader rb) = Reader $ rf <*> rb
+  (<*>) (Reader rab) (Reader ra) = Reader $ rab <*> ra
 
 instance Monad (Reader r) where
   (>>=) (Reader ra) aRb = Reader (\r -> runReader (aRb (ra r)) r)
@@ -376,7 +376,9 @@ instance Functor (Moi s) where
 
 instance Applicative (Moi s) where
   pure a = Moi $ \s -> (a, s)
-  (<*>) (Moi sf) (Moi sa) = Moi $ Ap.liftA2 (,) (fst . sf <*> fst . sa) id
+  (<*>) (Moi sf) (Moi sa) = Moi $ Ap.liftA2 (,) (sab' <*> sa') id
+    where sa' = fst . sa
+          sab' = fst . sf
 
 instance Monad (Moi s) where
   (>>=) (Moi sa) f = Moi $ (\s -> runState ((f . fst . sa) s) s)
