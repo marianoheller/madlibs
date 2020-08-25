@@ -1,5 +1,7 @@
 module Lib where
 
+import Control.Applicative as Ap
+import Data.Bifunctor as Bi
 import Data.Monoid
 import Test.QuickCheck
 
@@ -360,7 +362,21 @@ instance Functor (Reader r) where
 
 instance Applicative (Reader r) where
   pure a = Reader $ const a
-  (<*>) (Reader ra) (Reader rb) = Reader $ ra <*> rb
+  (<*>) (Reader rf) (Reader rb) = Reader $ rf <*> rb
 
 instance Monad (Reader r) where
   (>>=) (Reader ra) aRb = Reader (\r -> runReader (aRb (ra r)) r)
+
+-- ====================================================================
+-- Moi
+data Moi s a = Moi {runState :: s -> (a, s)}
+
+instance Functor (Moi s) where
+  fmap f (Moi sa) = Moi $ (Bi.first f) . sa
+
+instance Applicative (Moi s) where
+  pure a = Moi $ \s -> (a, s)
+  (<*>) (Moi sf) (Moi sa) = Moi $ Ap.liftA2 (,) (fst . sf <*> fst . sa) id
+
+instance Monad (Moi s) where
+  (>>=) (Moi sa) f = Moi $ (\s -> runState ((f . fst . sa) s) s)
