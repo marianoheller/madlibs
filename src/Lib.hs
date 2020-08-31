@@ -2,6 +2,7 @@ module Lib where
 
 import Control.Applicative as Ap
 import Data.Bifunctor as Bi
+import Data.Foldable
 import Data.Monoid
 import Test.QuickCheck
 
@@ -377,8 +378,42 @@ instance Functor (Moi s) where
 instance Applicative (Moi s) where
   pure a = Moi $ \s -> (a, s)
   (<*>) (Moi sf) (Moi sa) = Moi $ Ap.liftA2 (,) (sab' <*> sa') id
-    where sa' = fst . sa
-          sab' = fst . sf
+    where
+      sa' = fst . sa
+      sab' = fst . sf
 
 instance Monad (Moi s) where
   (>>=) (Moi sa) f = Moi $ (\s -> runState ((f . fst . sa) s) s)
+
+get :: Moi s s
+get = Moi (\s -> (s, s))
+
+put :: s -> Moi s ()
+put s = Moi (\_ -> ((), s))
+
+exec :: Moi s a -> s -> s
+exec = (snd .) . runState
+
+eval :: Moi s a -> s -> a
+eval = (fst .) . runState
+
+modify :: (s -> s) -> Moi s ()
+modify f = Moi (\s -> ((), f s))
+
+-- ====================================================================
+-- Compose
+
+data Compose f g a = Compose {getCompose :: f (g a)}
+
+instance (Functor f, Functor g) => Functor (Compose f g) where
+  fmap f (Compose fga) = Compose $ (fmap . fmap) f fga
+
+instance (Applicative f, Applicative g) => Applicative (Compose f g) where
+  pure a = Compose $ pure . pure $ a
+  (<*>) (Compose fgab) (Compose fga) = Compose $ liftA2 (<*>) fgab fga
+
+instance (Foldable f, Foldable g) => Foldable (Compose f g) where
+  foldMap f (Compose fga) = (foldMap . foldMap) f fga
+
+instance (Traversable f, Traversable g) => Traversable (Compose f g) where
+  traverse afb (Compose fga) = Compose <$> (traverse . traverse) afb fga
