@@ -1,7 +1,8 @@
 module Lib where
 
-import Control.Applicative as Ap
-import Data.Bifunctor as Bi
+import qualified Control.Applicative as Ap
+import qualified Control.Monad as M
+import qualified Data.Bifunctor as Bi
 import Data.Foldable
 import Data.Monoid
 import Test.QuickCheck
@@ -410,10 +411,25 @@ instance (Functor f, Functor g) => Functor (Compose f g) where
 
 instance (Applicative f, Applicative g) => Applicative (Compose f g) where
   pure a = Compose $ pure . pure $ a
-  (<*>) (Compose fgab) (Compose fga) = Compose $ liftA2 (<*>) fgab fga
+  (<*>) (Compose fgab) (Compose fga) = Compose $ Ap.liftA2 (<*>) fgab fga
 
 instance (Foldable f, Foldable g) => Foldable (Compose f g) where
   foldMap f (Compose fga) = (foldMap . foldMap) f fga
 
 instance (Traversable f, Traversable g) => Traversable (Compose f g) where
   traverse afb (Compose fga) = Compose <$> (traverse . traverse) afb fga
+
+-- ====================================================================
+-- IndentityT
+newtype IdentityT f a = IdentityT {runIdentityT :: f a}
+  deriving (Eq, Show)
+
+instance Functor f => Functor (IdentityT f) where
+  fmap f (IdentityT fa) = IdentityT $ fmap f fa
+
+instance Applicative f => Applicative (IdentityT f) where
+  pure a = IdentityT $ pure a
+  (<*>) (IdentityT f) (IdentityT fa) = IdentityT $ f <*> fa
+
+instance Monad m => Monad (IdentityT m) where
+  (IdentityT ma) >>= f = IdentityT $ ma >>= (runIdentityT . f)
