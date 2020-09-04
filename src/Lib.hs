@@ -433,3 +433,17 @@ instance Applicative f => Applicative (IdentityT f) where
 
 instance Monad m => Monad (IdentityT m) where
   (IdentityT ma) >>= f = IdentityT $ ma >>= (runIdentityT . f)
+
+-- ====================================================================
+-- MaybeT
+newtype MaybeT m a = MaybeT {runMaybeT :: m (Maybe a)}
+
+instance Functor f => Functor (MaybeT f) where
+  fmap f (MaybeT fa) = MaybeT $ (fmap . fmap) f fa
+
+instance Applicative f => Applicative (MaybeT f) where
+  pure a = MaybeT . pure . pure $ a
+  (<*>) (MaybeT fab) (MaybeT fa) = MaybeT $ Ap.liftA2 (<*>) fab fa
+
+instance Monad m => Monad (MaybeT m) where
+  ma >>= f = MaybeT $ mma >>= (fmap (runMaybeT . f))
