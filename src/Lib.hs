@@ -550,3 +550,18 @@ class MonadTrans t where
 --  MonadIO
 class (Monad m) => MonadIO m where
   liftIO :: IO a -> m a
+
+-- ====================================================================
+--  Monad transformers excersices
+rDec :: Num a => Reader a a
+rDec = Reader $ ((-) 1)
+
+rShow :: Show a => ReaderT a Identity String
+rShow = ReaderT $ Identity . show
+
+rPrintAndInc :: (Show a, Num a) => ReaderT a IO a
+rPrintAndInc = ReaderT $ \r -> do
+  putStrLn $ "Hi: " ++ show r
+  return $ r + 1
+
+  
