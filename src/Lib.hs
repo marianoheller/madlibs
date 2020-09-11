@@ -1,3 +1,5 @@
+{-# LANGUAGE RankNTypes #-}
+
 module Lib where
 
 import qualified Control.Applicative as Ap
@@ -564,4 +566,14 @@ rPrintAndInc = ReaderT $ \r -> do
   putStrLn $ "Hi: " ++ show r
   return $ r + 1
 
-  
+-- ====================================================================
+-- Cont
+newtype Cont a = Cont {unCont :: forall r. (a -> r) -> r}
+
+cont :: a -> Cont a
+cont a =
+  let cb = id
+   in Cont (\cb -> cb a)
+
+instance Functor Cont where
+  fmap f (Cont c) = cont $ c f
